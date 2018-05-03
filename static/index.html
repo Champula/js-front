@@ -26,6 +26,10 @@ div.tooltip {
     border-radius: 8px;			
     pointer-events: none;			
 }
+button {
+  position: absolute;
+  height: 5em;
+}
 
 .node--leaf {
   fill: white;
@@ -37,7 +41,7 @@ div.tooltip {
   text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
 }
 
-
+.node--leaf,
 .node--root{
   pointer-events: none;
 }
@@ -64,47 +68,7 @@ var pack = d3.pack()
 d3.json("/output_file2.json", function(error, allData) {
   if (error) throw error;
 
-  var keywords = [];
-    for (var i = 0; i < 4; i++) {
-      var tempKeywords = [];
-      allData[0].children[i].children.forEach(function(d) {
-        var tempInfo = [];
-        var index = tempKeywords.findIndex(x => x.name == d.keyword)
-        if ( index === -1) {
-          tempKeywords.push({
-            "name" : d.keyword,
-            "size" : 1,
-            "info" : [{"title": d.title, "author": d.author}]
-            //"children" : [{"name" : d.title + ': ' + d.author, "size":1}]
-          });
-        } else {
-          tempKeywords[index].size = tempKeywords[index].size+1;
-          var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
-          if ( titleIndex === -1 ) {
-            tempKeywords[index].info.push({"title": d.title, "author": d.author})
-          } else {
-            tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.author
-          }
-
-        }          
-        //   tempKeywords[index].size = tempKeywords[index].size+1;
-        //   var titleIndex = tempKeywords[index].children.findIndex(x => x.name.includes(d.title))
-        //   if ( titleIndex === -1 ) {
-        //     tempKeywords[index].children.push({"name" : d.title + ': ' + d.author, "size": 1})
-        //   } else {
-        //     tempKeywords[index].children[titleIndex].name =  tempKeywords[index].children[titleIndex].name + ', ' + d.author
-        //   }
-
-        // }
-      })
-      
-      keywords.push({
-        "name": allData[0].children[i].name,
-        "size" : 3,
-        "children": tempKeywords
-      })
-    }
-  root = {"name": "Research Paper Topics", "children": keywords}
+  root = filterData("none")
 
   root = d3.hierarchy(root)
       .sum(function(d) { return d.size; })
@@ -119,33 +83,23 @@ d3.json("/output_file2.json", function(error, allData) {
     .attr("class", "tooltip")				
     .style("opacity", 0);
 
+  // Define Data update button
+  var button = d3.select("body").append("button")
+    .attr("class", "button")
+    .attr("status", "none")				
+    .style("opacity", 1)
+    .style("left", 100 + "px")
+    .style("top", 100+ "px")		
+    .text("Update")
+    .on("click", function(d) { updateData(d)});
+
   var circle = g.selectAll("circle")
     .data(nodes)
     .enter().append("circle")
       .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
       .style("fill", function(d) { return d.children ? color(d.depth) : null; })
       .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation();})
-        .on("mouseover", function(d) {
-            if ( d3.select(this).attr("class") === "node node--leaf") {
-              var info = [];
-              var length = d.data.info.length < 10 ? d.data.info.length : 10
-            for ( var i = 0 ;i < length ; i ++) {
-              info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
-            }
-              div.transition()		
-                .duration(200)		
-                .style("opacity", .9);		
-              div
-                .html(info)	
-                .style("left", (d3.event.pageX) + "px")		
-                .style("top", (d3.event.pageY - 28) + "px");	
-            
-            }		})		
-        .on("mouseout", function(d) {		
-            div.transition()		
-                .duration(500)		
-                .style("opacity", 0);	
-        });
+
 
   var text = g.selectAll("text")
     .data(nodes)
@@ -156,20 +110,28 @@ d3.json("/output_file2.json", function(error, allData) {
 
       .text(function(d) {
         return d.data.name
-       });
+       })
+      .on("mouseover", function(d) {
+        var info = [];
+        var length = d.data.info.length < 10 ? d.data.info.length : 10
+        for ( var i = 0 ;i < length ; i ++) {
+          info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
+        }
+        div.transition()		
+          .duration(200)		
+          .style("opacity", .9);		
+        div
+          .html(info)	
+          .style("left", (d3.event.pageX) + "px")		
+          .style("top", (d3.event.pageY - 28) + "px");	
+      })		
+      .on("mouseout", function(d) {		
+        div.transition()		
+          .duration(500)		
+          .style("opacity", 0);	
+      });;
 
-  var info = g.selectAll("info")
-    .data(nodes)
-    .enter().append("text")
-      .attr("class", "info")
-      .style("fill-opacity", function(d) { return !d.children ? 1 : 0; })
-      .style("display", function(d) { return !d.children ? "inline": "none" ;})
-
-      .text(function(d) {
-        return d.data.name
-       });
-
-  var node = g.selectAll("circle,text,info"); 
+  var node = g.selectAll("circle,text"); 
   svg
       .style("background", color(-1))
       .on("click", function() { zoom(root); })
@@ -190,23 +152,7 @@ d3.json("/output_file2.json", function(error, allData) {
       .filter(function(d) { return d.parent === focus || this.style.display  === "inline" ; })
         .style("fill-opacity", function(d) { return d.parent === focus ? 1 : 0; })
         .on("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
-        .on("end", function(d) { 
-          if (d.parent !== focus) this.style.display = "none"; 
-          
-
-          if ( d3.select(this).attr("class") === "node node--leaf") {
-              var info = [];
-              var length = d.data.info.length < 10 ? d.data.info.length : 10
-            for ( var i = 0 ;i < length ; i ++) {
-              info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
-            }
-              div.transition()		
-                .duration(200)		
-                .style("opacity", 1);		
-              div
-                .html(info)	
-            }
-        })
+        .on("end", function(d) { if (d.parent !== focus) this.style.display = "none"; })
 
   }
 
@@ -216,6 +162,152 @@ d3.json("/output_file2.json", function(error, allData) {
     circle.attr("r", function(d) { return d.r * k; });
   }
 
+  function updateData(d) {
+    if (button.attr("status") === "none") {
+      
+      root = filterData("active")
+
+      root = d3.hierarchy(root)
+      .sum(function(d) { return d.size; })
+      .sort(function(a, b) { return b.value - a.value; });
+
+      focus = root,
+      nodes = pack(root).descendants(),
+      view;
+
+      var circle = g.selectAll("circle").data(nodes);
+      circle.exit().remove()
+      circle.enter().append("circle")
+      .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+      .style("fill", function(d) { return d.children ? color(d.depth) : null; })
+      .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation();})
+
+      var text = g.selectAll("text").data(nodes);
+
+      text.exit().remove()
+      text.enter().append("text")
+      .attr("class", "label")
+      .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
+      .style("display", function(d) { return d.parent === root ? "inline" : "none";})
+
+      .text(function(d) {
+        return d.data.name
+       })
+      .on("mouseover", function(d) {
+        var info = [];
+        var length = d.data.info.length < 10 ? d.data.info.length : 10
+        for ( var i = 0 ;i < length ; i ++) {
+          info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
+        }
+        div.transition()		
+          .duration(200)		
+          .style("opacity", .9);		
+        div
+          .html(info)	
+          .style("left", (d3.event.pageX) + "px")		
+          .style("top", (d3.event.pageY - 28) + "px");	
+      })		
+      .on("mouseout", function(d) {		
+        div.transition()		
+          .duration(500)		
+          .style("opacity", 0);	
+      });;
+
+      button.attr("status", "active")
+
+    } else {
+      root = filterData("none")
+
+      root = d3.hierarchy(root)
+      .sum(function(d) { return d.size; })
+      .sort(function(a, b) { return b.value - a.value; });
+
+      focus = root,
+      nodes = pack(root).descendants(),
+      view;
+
+      var circle = g.selectAll("circle")
+        .data(nodes);
+      circle.exit().remove()
+      circle.enter().append("circle")
+      .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+      .style("fill", function(d) { return d.children ? color(d.depth) : null; })
+      .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation();})
+      
+      var text = g.selectAll("text")
+      .data(nodes);
+      text.exit().remove()
+      text.enter().append("text")
+      .attr("class", "label")
+      .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
+      .style("display", function(d) { return d.parent === root ? "inline" : "none";})
+
+      .text(function(d) {
+        return d.data.name
+       })
+      .on("mouseover", function(d) {
+        var info = [];
+        var length = d.data.info.length < 10 ? d.data.info.length : 10
+        for ( var i = 0 ;i < length ; i ++) {
+          info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
+        }
+        div.transition()		
+          .duration(200)		
+          .style("opacity", .9);		
+        div
+          .html(info)	
+          .style("left", (d3.event.pageX) + "px")		
+          .style("top", (d3.event.pageY - 28) + "px");	
+      })		
+      .on("mouseout", function(d) {		
+        div.transition()		
+          .duration(500)		
+          .style("opacity", 0);	
+      });
+      button.attr("status", "none")
+    }
+  }
+
+
+  function filterData(status) {
+
+    var keywords = [];
+    for (var i = 0; i < 4; i++) {
+      var tempKeywords = [];
+      allData[0].children[i].children.forEach(function(d) {
+        var tempInfo = [];
+        var index = tempKeywords.findIndex(x => x.name == d.keyword)
+        if (status === "active" && d.helsinki === 0) {
+          return
+        } 
+        if ( index === -1) {
+          tempKeywords.push({
+            "name" : d.keyword,
+            "size" : 1,
+            "info" : [{"title": d.title, "author": d.author}]
+            //"children" : [{"name" : d.title + ': ' + d.author, "size":1}]
+          });
+        } else {
+          tempKeywords[index].size = tempKeywords[index].size+1;
+          var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
+          if ( titleIndex === -1 ) {
+            tempKeywords[index].info.push({"title": d.title, "author": d.author})
+          } else {
+            tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.author
+          }
+
+        }          
+      })
+      
+      keywords.push({
+        "name": allData[0].children[i].name,
+        "size" : 3,
+        "children": tempKeywords
+      })
+    }
+  root = {"name": "Research Paper Topics", "children": keywords}
+  return root;
+  }
 });
 
 </script>
