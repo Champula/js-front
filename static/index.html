@@ -17,8 +17,7 @@
 }
 
 div.tooltip {	
-    position: absolute;			
-    text-align: center;						
+    position: absolute;								
     padding: 2px;				
     font: 12px sans-serif;		
     background: lightsteelblue;	
@@ -47,6 +46,7 @@ button {
 }
 
 </style>
+
 <svg width="960" height="960"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -69,7 +69,6 @@ d3.json("/output_file2.json", function(error, allData) {
   if (error) throw error;
 
   root = filterData("none")
-
   root = d3.hierarchy(root)
       .sum(function(d) { return d.size; })
       .sort(function(a, b) { return b.value - a.value; });
@@ -91,7 +90,7 @@ d3.json("/output_file2.json", function(error, allData) {
     .style("left", 100 + "px")
     .style("top", 100+ "px")		
     .text("Update")
-    .on("click", function(d) { updateData(d)});
+    .on("click", function(d) { updateData() });
 
   var circle = g.selectAll("circle")
     .data(nodes)
@@ -112,11 +111,12 @@ d3.json("/output_file2.json", function(error, allData) {
         return d.data.name
        })
       .on("mouseover", function(d) {
-        var info = [];
+        var info = "<ul>";
         var length = d.data.info.length < 10 ? d.data.info.length : 10
         for ( var i = 0 ;i < length ; i ++) {
-          info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
+          info += "<li> <b>" + d.data.info[i].title + ' </b>: ' + d.data.info[i].author + "</li>"
         }
+        info += "</ul>"
         div.transition()		
           .duration(200)		
           .style("opacity", .9);		
@@ -137,6 +137,7 @@ d3.json("/output_file2.json", function(error, allData) {
       .on("click", function() { zoom(root); })
 
   zoomTo([root.x, root.y, root.r * 2 + margin]);
+
 
   function zoom(d) {
     var focus0 = focus; focus = d;
@@ -162,111 +163,36 @@ d3.json("/output_file2.json", function(error, allData) {
     circle.attr("r", function(d) { return d.r * k; });
   }
 
-  function updateData(d) {
-    if (button.attr("status") === "none") {
-      
-      root = filterData("active")
+  function updateData() {
+    var newStatus = button.attr("status") === "active" ? "none" : "active"
+      root = filterData(newStatus)
 
       root = d3.hierarchy(root)
       .sum(function(d) { return d.size; })
       .sort(function(a, b) { return b.value - a.value; });
 
-      focus = root,
-      nodes = pack(root).descendants(),
-      view;
 
-      var circle = g.selectAll("circle").data(nodes);
-      circle.exit().remove()
+      var nodes = pack(root).descendants()
+
+      var circle = g.selectAll("circle").data(nodes).exit().remove();
+
       circle.enter().append("circle")
-      .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-      .style("fill", function(d) { return d.children ? color(d.depth) : null; })
-      .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation();})
 
       var text = g.selectAll("text").data(nodes);
-
-      text.exit().remove()
-      text.enter().append("text")
-      .attr("class", "label")
-      .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
-      .style("display", function(d) { return d.parent === root ? "inline" : "none";})
-
-      .text(function(d) {
-        return d.data.name
-       })
-      .on("mouseover", function(d) {
-        var info = [];
-        var length = d.data.info.length < 10 ? d.data.info.length : 10
-        for ( var i = 0 ;i < length ; i ++) {
-          info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
-        }
-        div.transition()		
-          .duration(200)		
-          .style("opacity", .9);		
-        div
-          .html(info)	
-          .style("left", (d3.event.pageX) + "px")		
-          .style("top", (d3.event.pageY - 28) + "px");	
-      })		
-      .on("mouseout", function(d) {		
-        div.transition()		
-          .duration(500)		
-          .style("opacity", 0);	
-      });;
-
-      button.attr("status", "active")
-
-    } else {
-      root = filterData("none")
-
-      root = d3.hierarchy(root)
-      .sum(function(d) { return d.size; })
-      .sort(function(a, b) { return b.value - a.value; });
-
-      focus = root,
-      nodes = pack(root).descendants(),
-      view;
-
-      var circle = g.selectAll("circle")
-        .data(nodes);
-      circle.exit().remove()
-      circle.enter().append("circle")
-      .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-      .style("fill", function(d) { return d.children ? color(d.depth) : null; })
-      .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation();})
       
-      var text = g.selectAll("text")
-      .data(nodes);
-      text.exit().remove()
-      text.enter().append("text")
-      .attr("class", "label")
-      .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
-      .style("display", function(d) { return d.parent === root ? "inline" : "none";})
+      text.enter().append("text");
 
-      .text(function(d) {
-        return d.data.name
-       })
-      .on("mouseover", function(d) {
-        var info = [];
-        var length = d.data.info.length < 10 ? d.data.info.length : 10
-        for ( var i = 0 ;i < length ; i ++) {
-          info.push(d.data.info[i].title + ': ' + d.data.info[i].author)
-        }
-        div.transition()		
-          .duration(200)		
-          .style("opacity", .9);		
-        div
-          .html(info)	
-          .style("left", (d3.event.pageX) + "px")		
-          .style("top", (d3.event.pageY - 28) + "px");	
-      })		
-      .on("mouseout", function(d) {		
-        div.transition()		
-          .duration(500)		
-          .style("opacity", 0);	
-      });
-      button.attr("status", "none")
-    }
+
+      button.attr("status",  newStatus)
+      var node = g.selectAll("circle,text"); 
+
   }
+
+  // function doUpdate() {
+	//   var rand = Math.floor( Math.random() * 26 );
+	//   var myData = letters.slice(0, rand).split('');
+	//   update(myData);
+  // }
 
 
   function filterData(status) {
@@ -285,7 +211,6 @@ d3.json("/output_file2.json", function(error, allData) {
             "name" : d.keyword,
             "size" : 1,
             "info" : [{"title": d.title, "author": d.author}]
-            //"children" : [{"name" : d.title + ': ' + d.author, "size":1}]
           });
         } else {
           tempKeywords[index].size = tempKeywords[index].size+1;
@@ -296,18 +221,19 @@ d3.json("/output_file2.json", function(error, allData) {
             tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.author
           }
 
-        }          
+        }        
       })
-      
-      keywords.push({
+      if (tempKeywords.length > 0 ) {
+        keywords.push({
         "name": allData[0].children[i].name,
-        "size" : 3,
         "children": tempKeywords
       })
+      }
     }
   root = {"name": "Research Paper Topics", "children": keywords}
   return root;
   }
 });
+
 
 </script>
