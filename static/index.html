@@ -22,7 +22,7 @@ div.tooltip {
     padding-right: 5px;	
     margin-right: 10em;		
     font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;	
-    background: rgb(194, 243, 241);	
+    background: rgb(27, 189, 181);	
     border: 0px;		
     border-radius: 8px;			
     pointer-events: none;			
@@ -73,7 +73,7 @@ var pack = d3.pack()
     var Circle_CFill = { 0: "node--root", 1: "node", 2: "node node--leaf" };
     var Circle_DFill = { 0: true, 1: true, 2: null };
 
-var jsonFile = "/output_file2.json"
+var jsonFile = "/clusters.json"
 
 d3.json(jsonFile, function(error, json) {
   if (error) throw error;
@@ -184,9 +184,10 @@ d3.json(jsonFile, function(error, json) {
             })
             .on("mouseover", function(d) {
               var info = "<ul>";
-              var length = d.data.info.length < 10 ? d.data.info.length : 10
+              var length = d.data.info.length < 15 ? d.data.info.length : 15
+              d.data.info.sort( (a,b) => b.year - a.year )
               for ( var i = 0 ;i < length ; i ++) {
-                info += "<li> <b>" + d.data.info[i].title + ' </b>: ' + d.data.info[i].author + "</li>"
+                info += "<li> <b>" + d.data.info[i].title + '</b>: (' + d.data.info[i].year +') ' + d.data.info[i].author + "</li>"
               }
               info += "</ul>"
               div.transition()		
@@ -234,13 +235,13 @@ d3.json(jsonFile, function(error, json) {
           tempKeywords.push({
             "name" : d.keyword,
             "size" : 1,
-            "info" : [{"title": d.title, "author": d.author}]
+            "info" : [{"title": d.title, "author": d.author, "year": d.year }]
           });
         } else {
-          tempKeywords[index].size = tempKeywords[index].size+1;
           var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
           if ( titleIndex === -1 ) {
-            tempKeywords[index].info.push({"title": d.title, "author": d.author})
+            tempKeywords[index].size = tempKeywords[index].size+1;
+            tempKeywords[index].info.push({"title": d.title, "author": d.author, "year": d.year})
           } else {
             tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.author
           }
