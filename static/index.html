@@ -237,15 +237,15 @@ d3.json(jsonFile, function(error, json) {
           tempKeywords.push({
             "name" : d.keyword,
             "size" : 1,
-            "info" : [{"title": d.title, "author": d.author, "year": d.year }]
+            "info" : [{"title": d.title, "author": d.name, "year": d.year }]
           });
         } else {
           var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
           if ( titleIndex === -1 ) {
             tempKeywords[index].size = tempKeywords[index].size+1;
-            tempKeywords[index].info.push({"title": d.title, "author": d.author, "year": d.year})
+            tempKeywords[index].info.push({"title": d.title, "author": d.name, "year": d.year})
           } else {
-            tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.author
+            tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.name
           }
 
         }          
