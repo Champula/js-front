@@ -191,7 +191,7 @@ d3.json(jsonFile, function(error, json) {
               var length = d.data.info.length < 15 ? d.data.info.length : 15
               d.data.info.sort( (a,b) => b.year - a.year )
               for ( var i = 0 ;i < length ; i ++) {
-                info += "<li id=\"" + d.data.info[i].title + "\" > <b>" + d.data.info[i].title + '</b>: (' + d.data.info[i].year +') ' + d.data.info[i].author + "</li>"
+                info += "<li class=list id=\"" + d.data.info[i].title + "\" > <b>" + d.data.info[i].title + '</b>: (' + d.data.info[i].year +') ' + d.data.info[i].author + "</li>"
               }
               
               info += "</ul>"
@@ -202,7 +202,12 @@ d3.json(jsonFile, function(error, json) {
               div
                 .html(info)
                 .style("left", (d3.event.pageX) + "px")		
-                .style("top", (d3.event.pageY - 28) + "px");	
+                .style("top", (d3.event.pageY - 28) + "px")
+                .on("click", function(d) {
+                  div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                } )	
               
               
 
