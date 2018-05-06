@@ -1,349 +1,366 @@
 ﻿<!DOCTYPE html>
 <meta charset="utf-8">
 <style>
-  .node {
-    cursor: pointer;
-  }
 
-  .node:hover {
-    stroke: #000;
-    stroke-width: 1.5px;
-  }
 
-  .label:hover {
-    stroke: #000;
-    stroke-width: 1.2px;
-  }
+    .node {
+        cursor: pointer;
+    }
 
-  div.tooltip {
-    position: absolute;
-    padding: 2px;
-    padding-right: 5px;
-    margin-right: 10em;
-    font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background: rgb(27, 189, 181);
-    border: 0px;
-    border-radius: 8px;
-    /* pointer-events: none;			 */
-  }
+        .node:hover {
+            stroke: #000;
+            stroke-width: 1.5px;
+        }
 
-  button.update {
-    position: absolute;
-    height: 5em;
-  }
+    .label:hover {
+        stroke: #000;
+        stroke-width: 1.2px;
+    }
 
-  .close {
-    position: absolute;
-  }
+    div.tooltip {
+        position: absolute;
+        padding: 2px;
+        padding-right: 5px;
+        margin-right: 10em;
+        font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+        background: rgb(27, 189, 181);
+        border: 0px;
+        border-radius: 8px;
+        /* pointer-events: none;			 */
+    }
 
-  .node--leaf {
-    fill: white;
-  }
+    button.update {
+        position: absolute;
+        height: 5em;
+    }
+    button.x-tooltip  {
+        float:right;
+    }
 
-  .label {
-    font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
-    text-anchor: middle;
-    text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
-  }
+    .node--leaf {
+        fill: white;
+    }
 
-  .node--leaf,
-  .node--root {
-    pointer-events: none;
-  }
+    .label {
+        font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+        text-anchor: middle;
+        text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+    }
 
-  .modal-dialog {
-    overflow-y: initial !important
-  }
+    .node--leaf,
+    .node--root {
+        pointer-events: none;
+    }
 
-  .modal-body {
-    height: 250px;
-    overflow-y: auto;
-  }
+    .modal-dialog {
+        overflow-y: initial !important
+    }
+
+    .modal-body {
+        height: 250px;
+        overflow-y: auto;
+    }
+    .ul-tooltip {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
 </style>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
 <svg width="960" height="960"></svg>
 
 <div class="modal fade" id="myModal" role="dialog">
-  <div class="modal-dialog">
+    <div class="modal-dialog">
 
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">Modal Header</h4>
-      </div>
-      <div class="modal-body">
-        <p id="modal_text"></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      </div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Modal Header</h4>
+            </div>
+            <div class="modal-body">
+                <p id="modal_text"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
     </div>
-
-  </div>
 </div>
 
-<script src="https://d3js.org/d3.v4.min.js"></script>
+<div class="tooltip" style="opacity:0">
+</div>
+
 <script>
 
 
-  var svg = d3.select("svg"),
-    margin = 20,
-    diameter = +svg.attr("width"),
-    g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+    var svg = d3.select("svg"),
+        margin = 20,
+        diameter = +svg.attr("width"),
+        g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
 
-  var color = d3.scaleLinear()
-    .domain([-1, 5])
-    .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
-    .interpolate(d3.interpolateHcl);
+    var color = d3.scaleLinear()
+        .domain([-1, 5])
+        .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
+        .interpolate(d3.interpolateHcl);
 
-  var pack = d3.pack()
-    .size([diameter - margin, diameter - margin])
-    .padding(2);
+    var pack = d3.pack()
+        .size([diameter - margin, diameter - margin])
+        .padding(2);
 
-  var Circle_CFill = { 0: "node--root", 1: "node", 2: "node node--leaf" };
-  var Circle_DFill = { 0: true, 1: true, 2: null };
+    var Circle_CFill = { 0: "node--root", 1: "node", 2: "node node--leaf" };
+    var Circle_DFill = { 0: true, 1: true, 2: null };
 
-  var jsonFile = "/output_file2.json";
-  var paperFile = "/papers.csv";
-  d3.csv(paperFile, function (error, csv) {
-   if (error) throw error;
+    var jsonFile = "output_file2.json";
+    var paperFile = "papers.csv";
 
-    d3.json(jsonFile, function (error, json) {
-      if (error) throw error;
-
-      var paper_text = function () {
+    function Load_Papers() {
         var result = null;
         $.ajax({
-          async: false,
-          url: "/data/papers.csv",
-          dataType: "text",
-          success: function (data) {
-            result = data;
-          }
+            async: false,
+            url: "papers.csv",
+            dataType: "text",
+            success: function (data) {
+                result = data;
+            }
         });
         return result;
-      };
+    };
+
+    var Papers = Load_Papers();
+
+    var csv = d3.csvParse(Papers);
+
+    d3.json(jsonFile, function (error, json) {
+        if (error) throw error;
+
+        var allData = json
+        root = filterData("none");
+
+        temp = root;
+        root = d3.hierarchy(root)
+            .sum(function (d) { return d.size; })
+            .sort(function (a, b) { return b.value - a.value; });
+
+        var focus = root,
+            nodes = pack(root).descendants(),
+            view;
+        render_circle(temp);
+        // Define the div for the tooltip
 
 
-      var allData = json
-      root = filterData("none");
+        // Define Data update button
+        var button = d3.select("body").append("button")
+            .attr("class", "button update")
+            .attr("status", "none")
+            .style("opacity", 1)
+            .style("left", 50 + "px")
+            .style("top", 50 + "px")
+            .text("Update")
+            .on("click", function (d) { updateData(d) });
 
-      temp = root;
-      root = d3.hierarchy(root)
-        .sum(function (d) { return d.size; })
-        .sort(function (a, b) { return b.value - a.value; });
+        svg
+            .style("background", color(-1))
+            .on("click", function () { zoom(root); })
 
-      var focus = root,
-        nodes = pack(root).descendants(),
-        view;
-      render_circle(temp);
-      // Define the div for the tooltip
-      var div = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0)
+        zoomTo([root.x, root.y, root.r * 2 + margin]);
 
+        //General Zoom to circle and text
+        function zoom(d) {
+            var focus0 = focus; focus = d;
 
-      // Define Data update button
-      var button = d3.select("body").append("button")
-        .attr("class", "button update")
-        .attr("status", "none")
-        .style("opacity", 1)
-        .style("left", 50 + "px")
-        .style("top", 50 + "px")
-        .text("Update")
-        .on("click", function (d) { updateData(d) });
-
-      svg
-        .style("background", color(-1))
-        .on("click", function () { zoom(root); })
-
-      zoomTo([root.x, root.y, root.r * 2 + margin]);
-
-      //General Zoom to circle and text
-      function zoom(d) {
-        var focus0 = focus; focus = d;
-
-        var transition = d3.transition()
-          .duration(d3.event.altKey ? 7500 : 750)
-          .tween("zoom", function (d) {
-            var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
-            return function (t) {
-              zoomTo(i(t));
-            };
-          });
-
-        transition.selectAll("text")
-          .filter(function (d) { return d.parent === focus || this.style.display === "inline"; })
-          .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
-          .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
-          .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; })
-
-      }
-
-      //Detail Zoom to circle and text
-      function zoomTo(v) {
-        var node = g.selectAll("circle,text");
-        var circle = g.selectAll("circle");
-        var k = diameter / v[2]; view = v;
-        node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
-        circle.attr("r", function (d) { return d.r * k; });
-      }
-      //main render function, use to render circle and text
-      function render_circle(d) {
-        root = d3.hierarchy(d)
-          .sum(function (d) { return d.size; })
-          .sort(function (a, b) { return b.value - a.value; });
-
-        focus = root, nodes = pack(root).descendants(), view;
-
-        var circle = g.selectAll("circle").data(nodes);
-
-        var enter_circle = circle.enter().append("circle")
-          .attr("class", function (d) { return Circle_CFill[d.depth]; })
-          .attr("transform", function (d) {
-            value_x = d.x - diameter / 2 + margin / 2;
-            value_y = d.y - diameter / 2 + margin / 2;
-            return "translate(" + value_x + "," + value_y + ")";
-          })
-          .attr('r', function (d) { return d.r; })
-          .style("fill", function (d) { return Circle_DFill[d.depth] ? color(d.depth) : null; })
-          .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
-
-        var merge_circle = enter_circle.merge(circle)
-          .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
-          .attr("transform", function (d) {
-            value_x = d.x - diameter / 2 + margin / 2;
-            value_y = d.y - diameter / 2 + margin / 2;
-            return "translate(" + value_x + "," + value_y + ")";
-          })
-          .attr('r', function (d) { return d.r; })
-          .style("fill", function (d) { return Circle_DFill[d.depth] ? color(d.depth) : null; })
-          .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
-
-        circle.exit().remove()
-
-        var text = g.selectAll("text").data(nodes);
-
-        var enter_text = text.enter().append("text")
-          .attr("class", "label");
-
-        var merge_text = enter_text.merge(text)
-          .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
-          .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
-          .text(function (d) {
-            return d.data.name
-          })
-          .on("mouseover", function (d) {
-            var info = "<button class=close>x</button><ul>";
-            d.data.info.sort((a, b) => b.year - a.year)
-            d.data.info.some(function (d, index, _arr) {
-              info += "<li id=\"" + d.title + "\" data-toggle=\"modal\" data-target=\"#myModal\"> <b>" + d.title + '</b>: (' + d.year + ') ' + d.author + "</li>"
-              return index == 15;
-            });
-
-            info += "</ul>"
-            var div = d3.select("div.tooltip");
-
-            div.transition()
-              .duration(500)
-              .style("opacity", 1);
-            div
-              .html(info)
-              .style("left", (d3.event.pageX) + "px")
-              .style("top", (d3.event.pageY - 28) + "px");
-
-            $(function () {
-              $("li").on("click", function () {
-                /// TODO Modal
-                div.transition()
-                  .duration(500)
-                  .style("opacity", 0); 
-                
-                current_tit = this.id;
-                Filter_CSV = csv.filter(function (d) {
-                  if (d.title === current_tit) {
-                    return d;
-                  }
+            var transition = d3.transition()
+                .duration(d3.event.altKey ? 7500 : 750)
+                .tween("zoom", function (d) {
+                    var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
+                    return function (t) {
+                        zoomTo(i(t));
+                    };
                 });
-                modal_text = Filter_CSV[0].paper_text.replace(/\n/g, '<br/>');
-                $("#modal_text").html(modal_text);
-                $("h4.modal-title").text(current_tit);
-                
-              });
-              $(".close").on("click", function() {
-                  div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                });
-            });
-          });
-        text.exit().remove();
 
-      };
-      // .on("mouseout", function (d) {
-      //     div.transition()
-      //         .duration(500)
-      //         .style("opacity", 0);
-      // });
+            transition.selectAll("text")
+                .filter(function (d) { return d.parent === focus || this.style.display === "inline"; })
+                .style("fill-opacity", function (d) { return d.parent === focus ? 1 : 0; })
+                .on("start", function (d) { if (d.parent === focus) this.style.display = "inline"; })
+                .on("end", function (d) { if (d.parent !== focus) this.style.display = "none"; })
 
-      //Trigger when click update
-      function updateData(d) {
-        if (button.attr("status") === "none") {
-          root = filterData("active");
-          render_circle(root);
-          button.attr("status", "active");
-        } else {
-          root = filterData("none");
-          render_circle(root);
-          button.attr("status", "none");
         }
-      };
 
-      //Filter data before feed in server, using for update button
-      function filterData(status) {
-        //In case you want to filter any keyword, put it in this list, seperate by , seperator
-        var Eliminate_Keywords = ['Other']
-        var keywords = [];
-        for (var i = 0; i < 7; i++) {
-          var tempKeywords = [];
-          allData[0].children[i].children.forEach(function (d) {
-            var tempInfo = [];
-            var index = tempKeywords.findIndex(x => x.name == d.keyword)
-            if (status === "active" && d.helsinki === 0) { return };
-            if (Eliminate_Keywords.findIndex(x => x == d.keyword) !== -1) { return };
-            if (index === -1) {
-              tempKeywords.push({
-                "name": d.keyword,
-                "size": 1,
-                "info": [{ "title": d.title, "author": d.name, "year": d.year }]
-              });
+        //Detail Zoom to circle and text
+        function zoomTo(v) {
+            var node = g.selectAll("circle,text");
+            var circle = g.selectAll("circle");
+            var k = diameter / v[2]; view = v;
+            node.attr("transform", function (d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
+            circle.attr("r", function (d) { return d.r * k; });
+        }
+        //main render function, use to render circle and text
+        function render_circle(d) {
+            root = d3.hierarchy(d)
+                .sum(function (d) { return d.size; })
+                .sort(function (a, b) { return b.value - a.value; });
+
+            focus = root, nodes = pack(root).descendants(), view;
+
+            var circle = g.selectAll("circle").data(nodes);
+
+            var enter_circle = circle.enter().append("circle")
+                .attr("class", function (d) { return Circle_CFill[d.depth]; })
+                .attr("transform", function (d) {
+                    value_x = d.x - diameter / 2 + margin / 2;
+                    value_y = d.y - diameter / 2 + margin / 2;
+                    return "translate(" + value_x + "," + value_y + ")";
+                })
+                .attr('r', function (d) { return d.r; })
+                .style("fill", function (d) { return Circle_DFill[d.depth] ? color(d.depth) : null; })
+                .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+
+            var merge_circle = enter_circle.merge(circle)
+                .attr("class", function (d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+                .attr("transform", function (d) {
+                    value_x = d.x - diameter / 2 + margin / 2;
+                    value_y = d.y - diameter / 2 + margin / 2;
+                    return "translate(" + value_x + "," + value_y + ")";
+                })
+                .attr('r', function (d) { return d.r; })
+                .style("fill", function (d) { return Circle_DFill[d.depth] ? color(d.depth) : null; })
+                .on("click", function (d) { if (focus !== d) zoom(d), d3.event.stopPropagation(); });
+
+            circle.exit().remove()
+
+            var text = g.selectAll("text").data(nodes);
+
+            var enter_text = text.enter().append("text")
+                .attr("class", "label");
+
+            var merge_text = enter_text.merge(text)
+                .style("fill-opacity", function (d) { return d.parent === root ? 1 : 0; })
+                .style("display", function (d) { return d.parent === root ? "inline" : "none"; })
+                .text(function (d) {
+                    return d.data.name
+                })
+                .on("mouseover", function (d) {
+                    var info = "<button type=\"button\" class=\"close x-tooltip\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button><ul class=\"ul-tooltip\">";
+                    d.data.info.sort((a, b) => b.year - a.year)
+                    d.data.info.some(function (d,index,_arr) {
+                        info += "<li id=\"" + d.title + "\" data-toggle=\"modal\" data-target=\"#myModal\"> <b>" + d.title + '</b>: (' + d.year + ') ' + d.author + "</li>"
+                        return index == 15;
+                    });
+
+                    info += "</ul>"
+                    var div = d3.select("div.tooltip");
+
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 1);
+                    div
+                        .html(info)
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px");
+
+                    $(function () {
+                        $("li").on("click", function () {
+                            /// TODO Modal
+                            current_tit = this.id;
+                            Filter_CSV = csv.filter(function (d) {
+                                if (d.title === current_tit) {
+                                    return d;
+                                }
+                            });
+                            Filter_CSV.sort((a, b) => a.abstract.length - b.abstract.length);
+                            modal_text = Filter_CSV[0].abstract.replace(/\n/g, '<br/>');
+                            $("#modal_text").html(modal_text);
+                            $("h4.modal-title").text(current_tit);
+
+                            div.html('');
+                            div.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+                                
+
+                        })
+
+                    });
+
+                    $(function () {
+                        $("button.x-tooltip").on("click", function () {
+                            div.html('');
+                            div.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+
+                        })
+
+                    });
+                });
+            text.exit().remove();
+
+        };
+        // .on("mouseout", function (d) {
+        //     div.transition()
+        //         .duration(500)
+        //         .style("opacity", 0);
+        // });
+
+        //Trigger when click update
+        function updateData(d) {
+            if (button.attr("status") === "none") {
+                root = filterData("active");
+                render_circle(root);
+                button.attr("status", "active");
             } else {
-              var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
-              if (titleIndex === -1) {
-                tempKeywords[index].size = tempKeywords[index].size + 1;
-                tempKeywords[index].info.push({ "title": d.title, "author": d.name, "year": d.year })
-              } else {
-                tempKeywords[index].info[titleIndex].author = tempKeywords[index].info[titleIndex].author + ', ' + d.name
-              }
-
+                root = filterData("none");
+                render_circle(root);
+                button.attr("status", "none");
             }
-          })
+        };
 
-          if (tempKeywords.length > 0) {
-            keywords.push({
-              "name": allData[0].children[i].name,
-              "size": 3,
-              "children": tempKeywords
-            })
-          }
+        //Filter data before feed in server, using for update button
+        function filterData(status) {
+            //In case you want to filter any keyword, put it in this list, seperate by , seperator
+            var Eliminate_Keywords = ['Other']
+            var keywords = [];
+            for (var i = 0; i < 7; i++) {
+                var tempKeywords = [];
+                allData[0].children[i].children.forEach(function (d) {
+                    var tempInfo = [];
+                    var index = tempKeywords.findIndex(x => x.name == d.keyword)
+                    if (status === "active" && d.helsinki === 0) { return };
+                    if (Eliminate_Keywords.findIndex(x => x == d.keyword) !== -1) { return };
+                    if (index === -1) {
+                        tempKeywords.push({
+                            "name": d.keyword,
+                            "size": 1,
+                            "info": [{ "title": d.title, "author": d.name, "year": d.year }]
+                        });
+                    } else {
+                        var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
+                        if (titleIndex === -1) {
+                            tempKeywords[index].size = tempKeywords[index].size + 1;
+                            tempKeywords[index].info.push({ "title": d.title, "author": d.name, "year": d.year })
+                        } else {
+                            tempKeywords[index].info[titleIndex].author = tempKeywords[index].info[titleIndex].author + ', ' + d.name
+                        }
+
+                    }
+                })
+
+                if (tempKeywords.length > 0) {
+                    keywords.push({
+                        "name": allData[0].children[i].name,
+                        "size": 3,
+                        "children": tempKeywords
+                    })
+                }
+            }
+            root = { "name": "Research Paper Topics", "children": keywords }
+            return root;
         }
-        root = { "name": "Research Paper Topics", "children": keywords }
-        return root;
-      }
 
     });
-  });
 
 </script>
+
