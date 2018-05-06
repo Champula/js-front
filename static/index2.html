@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node {
+  cursor: pointer;
+}
+
+.node:hover {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.label:hover {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+div.tooltip {	
+    position: absolute;								
+    padding: 2px;				
+    font: 12px sans-serif;		
+    background: lightsteelblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
+}
+button {
+  position: absolute;
+  height: 5em;
+}
+
+.node--leaf {
+  fill: white;
+}
+
+.label {
+  font: 11px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-anchor: middle;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+}
+
+.node--leaf,
+.node--root{
+  pointer-events: none;
+}
+
+.list {
+  height: 960px;
+  width: 300px;
+  float: right;
+  padding: 10px;
+}
+svg {
+  float:left;
+}
+
+.container {
+  overflow:auto;
+  width: 1300px
+}
+
+</style>
+
+</style>
+<div class="container">
+<svg width="960" height="960"></svg>
+<div class="list"></div>
+</div>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var list = d3.select(".list").append("div")
+
+var svg = d3.select("svg"),
+    margin = 20,
+    diameter = +svg.attr("width"),
+    g = svg.append("g").attr("transform", "translate(" + diameter / 2 + "," + diameter / 2 + ")");
+
+var color = d3.scaleLinear()
+    .domain([-1, 5])
+    .range(["hsl(152,80%,80%)", "hsl(228,30%,40%)"])
+    .interpolate(d3.interpolateHcl);
+
+var pack = d3.pack()
+    .size([diameter - margin, diameter - margin])
+    .padding(2);
+
+var data1 = {};
+var data2 = {};
+
+console.log(data1)
+
+d3.json("/output_file2.json", function(error, allData) {
+  if (error) throw error;
+  var keywords = [];
+  for (var i = 0; i < 4; i++) {
+    var tempKeywords = [];
+    allData[0].children[i].children.forEach(function(d) {
+      var tempInfo = [];
+      var index = tempKeywords.findIndex(x => x.name == d.keyword)
+      if ( index === -1) {
+        tempKeywords.push({
+          "name" : d.keyword,
+          "size" : 1,
+          "info" : [{"title": d.title, "author": d.author}]
+        });
+      } else {
+        tempKeywords[index].size = tempKeywords[index].size+1;
+        var titleIndex = tempKeywords[index].info.findIndex(x => x.title == d.title)
+        if ( titleIndex === -1 ) {
+          tempKeywords[index].info.push({"title": d.title, "author": d.author})
+        } else {
+          tempKeywords[index].info[titleIndex].author =  tempKeywords[index].info[titleIndex].author + ', ' + d.author
+        }
+
+      }        
+    })
+    if (tempKeywords.length > 0 ) {
+      keywords.push({
+      "name": allData[0].children[i].name,
+      "children": tempKeywords
+    })
+    }
+  }
+  root = {"name": "Research Paper Topics", "children": keywords}
+
+  data1 = root
+
+  return root;
+});
+
+fun()
+  
+function fun() {
+
+  root = data1
+  root = d3.hierarchy(root)
+      .sum(function(d) { return d.size; })
+      .sort(function(a, b) { return b.value - a.value; });
+
+  var focus = root,
+      nodes = pack(root).descendants(),
+      view;
+
+  // Define the div for the tooltip
+  var div = d3.select("body").append("div")	
+    .attr("class", "tooltip")				
+    .style("opacity", 0);
+
+  // Define Data update button
+  var button = d3.select("body").append("button")
+    .attr("class", "button")
+    .attr("status", "none")				
+    .style("opacity", 1)
+    .style("left", 100 + "px")
+    .style("top", 100+ "px")		
+    .text("Update")
+    .on("click", function(d) { updateData() });
+
+
+  list
+    .attr("class", "list")
+    .text(function(d) {
+      var info = "<ul>";
+              for ( var i = 0 ;i < length ; i ++) {
+                info += "<li> <b>" + data1.info[i].title + ' </b>: ' +data1.info[i].author + "</li>"
+              }
+              info += "</ul>"
+      return info
+    })
+
+  var circle = g.selectAll("circle")
+    .data(nodes)
+    .enter().append("circle")
+      .attr("class", function(d) { return d.parent ? d.children ? "node" : "node node--leaf" : "node node--root"; })
+      .style("fill", function(d) { return d.children ? color(d.depth) : null; })
+      .on("click", function(d) { if (focus !== d) zoom(d), d3.event.stopPropagation();})
+
+
+  var text = g.selectAll("text")
+    .data(nodes)
+    .enter().append("text")
+      .attr("class", "label")
+      .style("fill-opacity", function(d) { return d.parent === root ? 1 : 0; })
+      .style("display", function(d) { return d.parent === root ? "inline" : "none";})
+
+      .text(function(d) {
+        return d.data.name
+       })
+      .on("mouseover", function(d) {
+        var info = "<ul>";
+        var length = d.data.info.length < 10 ? d.data.info.length : 10
+        for ( var i = 0 ;i < length ; i ++) {
+          info += "<li> <b>" + d.data.info[i].title + ' </b>: ' + d.data.info[i].author + "</li>"
+        }
+        info += "</ul>"
+        div.transition()		
+          .duration(200)		
+          .style("opacity", .9);		
+        div
+          .html(info)	
+          .style("left", (d3.event.pageX) + "px")		
+          .style("top", (d3.event.pageY - 28) + "px");	
+      })		
+      .on("mouseout", function(d) {		
+        div.transition()		
+          .duration(500)		
+          .style("opacity", 0);	
+      });;
+
+  var node = g.selectAll("circle,text"); 
+  svg
+      .style("background", color(-1))
+      .on("click", function() { zoom(root); })
+
+  zoomTo([root.x, root.y, root.r * 2 + margin]);
+
+
+  function zoom(d) {
+    var focus0 = focus; focus = d;
+
+    var transition = d3.transition()
+        .duration(d3.event.altKey ? 7500 : 750)
+        .tween("zoom", function(d) {
+          var i = d3.interpolateZoom(view, [focus.x, focus.y, focus.r * 2 + margin]);
+          return function(t) { zoomTo(i(t)); };
+        });
+
+    transition.selectAll("text")
+      .filter(function(d) { return d.parent === focus || this.style.display  === "inline" ; })
+        .style("fill-opacity", function(d) { return d.parent === focus ? 1 : 0; })
+        .on("start", function(d) { if (d.parent === focus) this.style.display = "inline"; })
+        .on("end", function(d) { if (d.parent !== focus) this.style.display = "none"; })
+
+  }
+
+  function zoomTo(v) {
+    var k = diameter / v[2]; view = v;
+    node.attr("transform", function(d) { return "translate(" + (d.x - v[0]) * k + "," + (d.y - v[1]) * k + ")"; });
+    circle.attr("r", function(d) { return d.r * k; });
+  }
+
+  function updateData() {
+    var newStatus = button.attr("status") === "active" ? "none" : "active"
+      root = filterData(newStatus)
+
+      root = d3.hierarchy(root)
+      .sum(function(d) { return d.size; })
+      .sort(function(a, b) { return b.value - a.value; });
+
+
+      var nodes = pack(root).descendants()
+
+      var circle = g.selectAll("circle").data(nodes).exit().remove();
+
+      circle.enter().append("circle")
+
+      var text = g.selectAll("text").data(nodes);
+      
+      text.enter().append("text");
+
+
+      button.attr("status",  newStatus)
+      var node = g.selectAll("circle,text"); 
+
+  }
+
+  // function doUpdate() {
+	//   var rand = Math.floor( Math.random() * 26 );
+	//   var myData = letters.slice(0, rand).split('');
+	//   update(myData);
+  // }
+
+
+  
+}
+
+
+</script>

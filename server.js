@@ -1,8 +1,10 @@
 var connect = require('connect');
 var serveStatic = require('serve-static');
 
-connect().use(serveStatic('./static')).listen(8000, function(){
-	console.log('Server running on 5050...');
+var port = process.env.PORT || 8000
+
+connect().use(serveStatic('./static')).listen(port, function(){
+	console.log('Server running on 8000...');
     });
 
     
