@@ -269,7 +269,8 @@
                     return d;
                   }
                 });
-                modal_text = Filter_CSV[0].paper_text.replace(/\n/g, '<br/>');
+                console.log(Filter_CSV)
+                modal_text = Filter_CSV[0].abstract.replace(/\n/g, '<br/>');
                 $("#modal_text").html(modal_text);
                 $("h4.modal-title").text(current_tit);
                 
